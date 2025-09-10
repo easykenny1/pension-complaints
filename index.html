@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PENSION ADMINISTRATION DIVISION — Complaint Portal</title>
+
+  <!-- Inter font + Bootstrap for professional look -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --card:#ffffff;
+      --muted:#6b7280;
+      --accent-1:#0b63a8;
+      --accent-2:#0567a3;
+      --radius:12px;
+      --shadow: 0 10px 30px rgba(9,30,63,0.07);
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:"Inter",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(180deg,var(--bg), #eef4fb);
+      color:#0b1b2b;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:20px;
+    }
+
+    /* Header */
+    .site-header{
+      max-width:1100px;
+      margin: 8px auto;
+      background: linear-gradient(135deg,var(--accent-1),var(--accent-2));
+      color:#fff;
+      padding:18px 20px;
+      border-radius:var(--radius);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow:var(--shadow);
+      gap:12px;
+    }
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{width:52px;height:52px;border-radius:10px;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center}
+    .brand h1{font-size:18px;margin:0;font-weight:700}
+    .brand p{margin:0;font-size:13px;opacity:0.95}
+
+    main{max-width:980px;margin:18px auto;padding:0 16px}
+    .grid{display:grid;grid-template-columns:1fr;gap:18px}
+    @media(min-width:980px){ .grid{grid-template-columns: 1fr 380px;} }
+
+    .card{
+      background:var(--card);
+      border-radius:12px;
+      padding:20px;
+      box-shadow:var(--shadow);
+    }
+
+    h2.title{margin:0 0 8px 0;color:#071133;font-size:18px}
+    p.lead{margin:0 0 14px 0;color:var(--muted);font-size:14px}
+
+    label.required::after{ content: " *"; color:#d23b3b; margin-left:4px; font-weight:600; }
+
+    input, select, textarea {
+      border-radius:10px;
+      border:1px solid #e6eff8;
+      padding:10px 12px;
+      font-size:14px;
+      width:100%;
+      background:transparent;
+      transition: box-shadow .12s, border-color .12s;
+    }
+    input:focus, select:focus, textarea:focus { box-shadow: 0 10px 30px rgba(11,99,168,0.06); border-color:var(--accent-1); outline:none; }
+    textarea { min-height:120px; resize:vertical; }
+
+    .hint { font-size:13px; color:var(--muted); margin-top:6px; }
+    .muted { color:var(--muted); }
+
+    .btn-primary {
+      background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+      border:0;border-radius:10px;padding:10px 16px;font-weight:700;color:#fff;
+      box-shadow:0 8px 18px rgba(11,99,168,0.12);
+    }
+    .btn-ghost { background:transparent;border:1px solid rgba(11,99,168,0.08);color:var(--accent-1);border-radius:10px;padding:9px 12px; }
+
+    .toast {
+      position:fixed;right:18px;bottom:18px;background:#07263f;color:#fff;padding:10px 14px;border-radius:10px;display:none;z-index:12000;font-weight:700;
+      box-shadow:0 10px 30px rgba(2,6,23,0.25);
+    }
+
+    footer{max-width:980px;margin:18px auto;text-align:center;color:var(--muted);font-size:13px;padding-bottom:30px}
+
+    .sr-only { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+  </style>
+</head>
+<body>
+  <header class="site-header" role="banner" aria-label="Pension Administration Division header">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2L4 5v6c0 5 3 9 8 11 5-2 8-6 8-11V5l-8-3z" fill="rgba(255,255,255,0.95)"/></svg>
+      </div>
+      <div>
+        <h1>PENSION ADMINISTRATION DIVISION</h1>
+        <p>Complaint Submission Portal</p>
+      </div>
+    </div>
+    <div style="font-weight:700;background:rgba(255,255,255,0.06);padding:8px 12px;border-radius:999px">Secure</div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <!-- Form Card -->
+      <section class="card" aria-labelledby="form-title">
+        <h2 id="form-title" class="title">Submit a complaint</h2>
+        <p class="lead">Complete the form below. Fields marked <span style="font-weight:700">*</span> are required.</p>
+
+        <form id="complaintForm" novalidate autocomplete="on" aria-describedby="form-desc">
+          <div id="form-desc" class="sr-only">Complaint form for Pension Administration Division</div>
+
+          <div class="mb-3">
+            <label for="fullName" class="required">Full name</label>
+            <input id="fullName" name="fullName" type="text" placeholder="Jane Doe" autocomplete="name" required>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label for="pfaSelect" class="required">PFA</label>
+              <select id="pfaSelect" name="pfaSelect" required>
+                <option value="">— Select PFA —</option>
+                <option value="NPLC Pension">NPLC Pension</option>
+                <option value="Access Pension">Access Pension</option>
+                <option value="Others">Others</option>
+              </select>
+            </div>
+
+            <div class="col-md-6" id="otherPfaCol" style="display:none;">
+              <label for="otherPfa" class="required">If Others, specify PFA name</label>
+              <input id="otherPfa" name="otherPfa" type="text" placeholder="Enter PFA name">
+              <div class="invalid-feedback">Please specify the PFA name.</div>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label for="rsaPin" class="required">RSA PIN</label>
+            <!-- pattern enforces PEN + 12 digits -->
+            <input id="rsaPin" name="rsaPin" type="text" placeholder="PEN123456789012" pattern="^PEN\d{12}$"
+                   title="Format: PEN followed by 12 digits (e.g. PEN123456789012)" autocomplete="off" required inputmode="text">
+            <div class="hint">Format: <strong>PEN</strong> followed by 12 digits (e.g. PEN123456789012).</div>
+          </div>
+
+          <div class="mb-3">
+            <label for="phone" class="required">Phone number</label>
+            <input id="phone" name="phone" type="tel" placeholder="+234 801 234 5678" autocomplete="tel" required inputmode="tel">
+          </div>
+
+          <div class="mb-3">
+            <label for="complaintText" class="required">Complaint / Message</label>
+            <textarea id="complaintText" name="complaintText" placeholder="Describe the issue in detail..." required></textarea>
+          </div>
+
+          <div class="d-flex justify-content-between align-items-center mt-2">
+            <div class="muted">&nbsp;</div>
+            <div>
+              <button type="reset" id="resetBtn" class="btn btn-ghost me-2">Reset</button>
+              <button type="submit" id="submitBtn" class="btn btn-primary">Submit complaint</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <!-- Info Card (minimal; no admin/security notice displayed) -->
+      <aside class="card" aria-label="Information">
+        <h3 style="margin:0 0 8px 0;font-size:15px">Information</h3>
+        <p class="muted" style="margin-bottom:12px">This portal accepts complaints and stores them locally unless a server endpoint is configured. Admin tools are hidden from regular visitors and appear only when you open the site with <code>#admin</code>.</p>
+      </aside>
+    </div>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite">Saved ✓</div>
+  <footer>© <span id="year"></span> Pension Administration Division</footer>
+
+  <script>
+    /***********************************************
+     * Single-file app
+     * - No admin password (admin UI is revealed when you open URL with #admin)
+     * - Submissions are stored in localStorage (plain JSON)
+     * - Admin can export JSON/XLSX/CSV or clear local storage
+     ***********************************************/
+    const STORAGE_KEY = "pad:complaints:v1";
+    const SERVER_ENDPOINT = ""; // optional: set to your API if you want server-side collection
+
+    // quick helpers
+    const $ = (sel, ctx=document) => ctx.querySelector(sel);
+    const createEl = (tag, props) => Object.assign(document.createElement(tag), props || {});
+
+    // DOM refs
+    const form = $("#complaintForm");
+    const pfaSelect = $("#pfaSelect");
+    const otherPfaCol = $("#otherPfaCol");
+    const otherPfa = $("#otherPfa");
+    const rsaPin = $("#rsaPin");
+    const toast = $("#toast");
+    const yearSpan = $("#year");
+    if (yearSpan) yearSpan.textContent = new Date().getFullYear();
+
+    // Show/hide 'Others' input and set required accordingly
+    function updateOtherVisibility(){
+      if (pfaSelect && pfaSelect.value === "Others") {
+        otherPfaCol.style.display = "block";
+        otherPfa.setAttribute("required", "");
+        // small focus for quicker input
+        setTimeout(()=> otherPfa.focus(), 50);
+      } else {
+        otherPfaCol.style.display = "none";
+        otherPfa.removeAttribute("required");
+        otherPfa.value = "";
+      }
+    }
+    pfaSelect.addEventListener("change", updateOtherVisibility);
+    // run on load/autofill
+    document.addEventListener("DOMContentLoaded", updateOtherVisibility);
+    window.addEventListener("load", updateOtherVisibility);
+
+    // Auto-uppercase RSA PIN and visual hint
+    rsaPin.addEventListener("input", () => {
+      const v = rsaPin.value.toUpperCase();
+      rsaPin.value = v;
+      if (v.length > 0 && !/^PEN\d*$/.test(v)) {
+        rsaPin.style.borderColor = "#e07a7a";
+      } else {
+        rsaPin.style.borderColor = "";
+      }
+    });
+
+    // Toast
+    function showToast(msg = "Saved ✓"){ toast.textContent = msg; toast.style.display = "block"; setTimeout(()=> toast.style.display = "none", 2400); }
+
+    // Submission: browser validation + strict RSA check + save
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      updateOtherVisibility(); // ensure required is set if Others selected
+
+      // Use native validation UI
+      if (!form.reportValidity()) return;
+
+      // strict RSA check (PEN + 12 digits)
+      const rsaVal = rsaPin.value.trim();
+      if (!/^PEN\d{12}$/.test(rsaVal)){
+        alert("RSA PIN must be in the format: PEN followed by 12 digits (e.g. PEN123456789012).");
+        rsaPin.focus();
+        return;
+      }
+
+      // prepare payload
+      const payload = {
+        id: Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8),
+        ts: new Date().toISOString(),
+        name: $("#fullName").value.trim(),
+        pfaOriginalSelection: pfaSelect.value,
+        pfa: (pfaSelect.value === "Others" ? otherPfa.value.trim() : pfaSelect.value),
+        rsaPin: rsaVal,
+        phone: $("#phone").value.trim(),
+        complaint: $("#complaintText").value.trim(),
+        userAgent: navigator.userAgent
+      };
+
+      // Try server endpoint first (optional)
+      if (SERVER_ENDPOINT){
+        try {
+          await fetch(SERVER_ENDPOINT, {
+            method: "POST",
+            headers: {"Content-Type":"application/json"},
+            body: JSON.stringify(payload),
+            keepalive: true
+          });
+          form.reset();
+          updateOtherVisibility();
+          showToast("Submitted ✓");
+          return;
+        } catch (err) {
+          console.warn("Server POST failed — falling back to localStorage.", err);
+        }
+      }
+
+      // Save to localStorage
+      const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      arr.unshift(payload);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+
+      form.reset();
+      updateOtherVisibility();
+      showToast("Saved locally ✓");
+    });
+
+    // Reset hides other after reset
+    $("#resetBtn").addEventListener("click", () => setTimeout(updateOtherVisibility, 10));
+
+    /**********************
+     * ADMIN (no password)
+     * - injected only when URL fragment is #admin
+     * - loads SheetJS on demand for XLSX export
+     **********************/
+    function createAdminPanel(){
+      if ($("#adminPanel")) return;
+
+      const panel = createEl("div", { id: "adminPanel" });
+      Object.assign(panel.style, {
+        position: "fixed", left: "50%", top: "8%", transform: "translateX(-50%)",
+        minWidth: "320px", maxWidth: "92%", zIndex: 12000, padding: "16px",
+        borderRadius: "12px", boxShadow: "0 18px 48px rgba(2,6,23,0.2)", background: "#fff", border: "1px solid rgba(11,99,168,0.06)"
+      });
+
+      panel.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+          <div><strong style="font-size:16px">Admin — Export & Manage</strong><div style="font-size:13px;color:#556077;margin-top:6px">Admin tools (no password). Visible because #admin is in the URL.</div></div>
+          <div><button id="closeAdmin" style="background:transparent;border:0;font-weight:700;cursor:pointer;color:#556077">Close</button></div>
+        </div>
+        <hr style="margin:10px 0;border:none;border-top:1px solid rgba(15,23,36,0.06)">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;gap:8px;">
+            <button id="exportJson" class="btn btn-ghost" style="padding:9px 12px">Export JSON</button>
+            <button id="clearLocal" class="btn btn-ghost" style="margin-left:auto;background:#fff;color:#c23b3b;border:1px solid rgba(194,59,59,0.06)">Clear Local</button>
+          </div>
+          <div id="adminStatus" style="font-size:13px;color:#556077"></div>
+          <div id="adminControls" style="display:flex;gap:8px;margin-top:8px">
+            <button id="downloadXlsx" class="btn btn-primary">Download XLSX</button>
+            <button id="downloadCsv" class="btn btn-ghost">Download CSV</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(panel);
+
+      $("#closeAdmin").addEventListener("click", () => { panel.remove(); try{ history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){window.location.hash='';} });
+
+      $("#exportJson").addEventListener("click", () => {
+        const raw = localStorage.getItem(STORAGE_KEY) || "[]";
+        const blob = new Blob([raw], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'complaints.json'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      $("#clearLocal").addEventListener("click", () => {
+        if (!confirm("Clear stored submissions from this browser? This cannot be undone.")) return;
+        localStorage.removeItem(STORAGE_KEY);
+        $("#adminStatus").textContent = "Local storage cleared.";
+      });
+
+      // load XLSX lib on demand (if not already loaded)
+      function loadXlsx(){
+        return new Promise((resolve, reject) => {
+          if (window.XLSX) return resolve();
+          const s = createEl('script', { src: "https://unpkg.com/xlsx/dist/xlsx.full.min.js" });
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error("Failed to load XLSX library"));
+          document.head.appendChild(s);
+        });
+      }
+
+      $("#downloadXlsx").addEventListener("click", async () => {
+        try {
+          await loadXlsx();
+        } catch (err) {
+          alert("Failed to load export library. Check console.");
+          console.error(err);
+          return;
+        }
+        const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        if (!arr.length){ alert("No submissions to export."); return; }
+        const rows = arr.map(it => ({
+          "Submitted At": it.ts,
+          "Name": it.name,
+          "PFA": it.pfa,
+          "PFA (original)": it.pfaOriginalSelection,
+          "RSA PIN": it.rsaPin,
+          "Phone": it.phone,
+          "Complaint": it.complaint
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Complaints");
+        const fname = `pension_complaints_${(new Date()).toISOString().slice(0,10)}.xlsx`;
+        XLSX.writeFile(wb, fname);
+      });
+
+      $("#downloadCsv").addEventListener("click", () => {
+        const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        if (!arr.length){ alert("No submissions to export."); return; }
+        const header = ["Submitted At","Name","PFA","PFA (original)","RSA PIN","Phone","Complaint"];
+        const lines = [header.join(",")];
+        arr.forEach(item => {
+          const row = [item.ts, csvEscape(item.name), csvEscape(item.pfa), csvEscape(item.pfaOriginalSelection), csvEscape(item.rsaPin), csvEscape(item.phone), csvEscape(item.complaint)];
+          lines.push(row.join(","));
+        });
+        const blob = new Blob([lines.join("\n")], {type:'text/csv'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'complaints.csv'; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      function csvEscape(v){ if (v == null) return ""; return `"${String(v).replace(/"/g,'""')}"`; }
+
+      // show stored count
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      $("#adminStatus").textContent = `Stored submissions: ${stored.length}.`;
+    }
+
+    // Show admin only if URL contains #admin
+    function checkFragment(){ if (window.location.hash === "#admin") createAdminPanel(); }
+    window.addEventListener("hashchange", checkFragment);
+    window.addEventListener("load", checkFragment);
+  </script>
+</body>
+</html>
