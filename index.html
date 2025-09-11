@@ -175,7 +175,7 @@
       <!-- Info Card (minimal; no admin/security notice displayed) -->
       <aside class="card" aria-label="Information">
         <h3 style="margin:0 0 8px 0;font-size:15px">Information</h3>
-        <p class="muted" style="margin-bottom:12px">This portal accepts complaints and stores them locally unless a server endpoint is configured. Admin tools are hidden from regular visitors and appear only when you open the site with <code>#admin</code>.</p>
+        <p class="muted" style="margin-bottom:12px">This portal forwards complaints to the secure serverless proxy.</p>
       </aside>
     </div>
   </main>
@@ -185,13 +185,14 @@
 
   <script>
     /***********************************************
-     * Single-file app
-     * - No admin password (admin UI is revealed when you open URL with #admin)
-     * - Submissions are stored in localStorage (plain JSON)
-     * - Admin can export JSON/XLSX/CSV or clear local storage
+     * Adjusted to call your Cloudflare Worker
+     * - Change WORKER_ENDPOINT if your Worker uses a sub-path (e.g. '/submit' or '/api/submit')
      ***********************************************/
     const STORAGE_KEY = "pad:complaints:v1";
-    const SERVER_ENDPOINT = ""; // optional: set to your API if you want server-side collection
+
+    // Use your Cloudflare Worker base URL here. If your worker expects a sub-path (like /submit) add it.
+    // Example: "https://pension-complaints.kehindeadewoye111.workers.dev/submit"
+    const SERVER_ENDPOINT = "https://pension-complaints.kehindeadewoye111.workers.dev/"; // <--- your worker URL
 
     // quick helpers
     const $ = (sel, ctx=document) => ctx.querySelector(sel);
@@ -212,7 +213,6 @@
       if (pfaSelect && pfaSelect.value === "Others") {
         otherPfaCol.style.display = "block";
         otherPfa.setAttribute("required", "");
-        // small focus for quicker input
         setTimeout(()=> otherPfa.focus(), 50);
       } else {
         otherPfaCol.style.display = "none";
@@ -221,7 +221,6 @@
       }
     }
     pfaSelect.addEventListener("change", updateOtherVisibility);
-    // run on load/autofill
     document.addEventListener("DOMContentLoaded", updateOtherVisibility);
     window.addEventListener("load", updateOtherVisibility);
 
@@ -239,7 +238,7 @@
     // Toast
     function showToast(msg = "Saved ✓"){ toast.textContent = msg; toast.style.display = "block"; setTimeout(()=> toast.style.display = "none", 2400); }
 
-    // Submission: browser validation + strict RSA check + save
+    // Submission: browser validation + strict RSA check + server POST (worker) or local fallback
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       updateOtherVisibility(); // ensure required is set if Others selected
@@ -268,25 +267,35 @@
         userAgent: navigator.userAgent
       };
 
-      // Try server endpoint first (optional)
+      // Try server endpoint first (Cloudflare Worker)
       if (SERVER_ENDPOINT){
         try {
-          await fetch(SERVER_ENDPOINT, {
+          const res = await fetch(SERVER_ENDPOINT, {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify(payload),
             keepalive: true
           });
+
+          if (!res.ok) {
+            // get text for debugging if available
+            let txt = "";
+            try { txt = await res.text(); } catch(e){ /* ignore */ }
+            console.warn("Worker responded with non-OK:", res.status, txt);
+            throw new Error("Worker returned non-OK status: " + res.status);
+          }
+
           form.reset();
           updateOtherVisibility();
           showToast("Submitted ✓");
           return;
         } catch (err) {
-          console.warn("Server POST failed — falling back to localStorage.", err);
+          console.warn("Worker POST failed — falling back to localStorage.", err);
+          // fall through to localStorage fallback below
         }
       }
 
-      // Save to localStorage
+      // Save to localStorage fallback
       const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       arr.unshift(payload);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
@@ -327,8 +336,9 @@
           </div>
           <div id="adminStatus" style="font-size:13px;color:#556077"></div>
           <div id="adminControls" style="display:flex;gap:8px;margin-top:8px">
-            <button id="downloadXlsx" class="btn btn-primary">Download XLSX</button>
-            <button id="downloadCsv" class="btn btn-ghost">Download CSV</button>
+            <button id="downloadXlsx" class="btn btn-primary">Download XLSX (local)</button>
+            <button id="downloadCsv" class="btn btn-ghost">Download CSV (local)</button>
+            <button id="exportServer" class="btn btn-ghost">Fetch Server Records</button>
           </div>
         </div>
       `;
@@ -400,6 +410,29 @@
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = 'complaints.csv'; document.body.appendChild(a); a.click(); a.remove();
         URL.revokeObjectURL(url);
+      });
+
+      // fetch server-side records from your worker (if supported)
+      $("#exportServer").addEventListener("click", async () => {
+        if (!SERVER_ENDPOINT) { alert("Server endpoint not configured."); return; }
+        try {
+          // It's common to expose a GET route on the worker for admin exports, e.g. ?action=export
+          const exportUrl = SERVER_ENDPOINT + "?action=export";
+          const res = await fetch(exportUrl, { method: "GET", headers: { "Accept":"application/json" }});
+          if (!res.ok) {
+            const txt = await res.text().catch(()=>"");
+            alert("Server export failed: " + res.status + " " + txt);
+            return;
+          }
+          const data = await res.json();
+          const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = url; a.download = 'server_complaints.json'; document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(url);
+        } catch (err) {
+          console.error(err);
+          alert("Failed to fetch server records. See console.");
+        }
       });
 
       function csvEscape(v){ if (v == null) return ""; return `"${String(v).replace(/"/g,'""')}"`; }
