@@ -179,7 +179,11 @@
       <!-- Info Card -->
       <aside class="card" aria-label="Information">
         <h3 style="margin:0 0 8px 0;font-size:15px">Information</h3>
-        <p class="muted" style="margin-bottom:12px">This portal forwards complaints to a secure serverless proxy. Admin tools are accessible at <code>#admin</code>.</p>
+        <p class="muted" style="margin-bottom:12px">
+          Submitted complaints are collected and stored securely. Personal details (RSA PIN, phone numbers and names)
+          are kept in our secure serverless database and are accessible only to authorized administrators. Your data
+          will not be displayed publicly and is handled according to standard security best-practices.
+        </p>
       </aside>
     </div>
   </main>
@@ -309,7 +313,7 @@
 
     /**********************
      * ADMIN PANEL (token-entered-at-runtime)
-     * - Open by visiting the page with #admin
+     * - Hidden from general visitors (no on-page hint). Admins can open with the secret method they know.
      **********************/
     function createAdminPanel(){
       if ($("#adminPanel")) return;
@@ -341,7 +345,7 @@
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(15,23,36,0.06)">
         <div style="display:flex;flex-direction:column;gap:10px">
           <input id="adminTokenInput" type="password" placeholder="Paste admin token here" aria-label="Admin token">
-          <div style="display:flex;gap:8px">
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
             <button id="btnFetchJson" class="btn btn-ghost">Fetch JSON (server)</button>
             <button id="btnDownloadCsv" class="btn btn-ghost">Download CSV (server)</button>
             <button id="btnDownloadXlsx" class="btn btn-primary">Download XLSX (server)</button>
@@ -354,7 +358,6 @@
 
       $("#closeAdmin").addEventListener("click", () => { panel.remove(); try{ history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){window.location.hash='';} });
 
-      // helper to get token (store only in session for current tab)
       function getAdminToken(){
         const input = $("#adminTokenInput").value.trim();
         if (input) {
@@ -388,12 +391,10 @@
         }
       }
 
-      // Fetch JSON
       $("#btnFetchJson").addEventListener("click", async () => {
         await fetchServerJson();
       });
 
-      // Download CSV (server-generated if worker supports it)
       $("#btnDownloadCsv").addEventListener("click", async () => {
         const token = getAdminToken();
         if (!token){ alert("Please enter admin token in the box above."); return; }
@@ -417,7 +418,6 @@
         }
       });
 
-      // Download XLSX: fetch JSON then convert client-side using SheetJS (loaded on demand)
       $("#btnDownloadXlsx").addEventListener("click", async () => {
         const data = await fetchServerJson();
         if (!data) return;
@@ -430,7 +430,6 @@
               document.head.appendChild(s);
             });
           }
-          // Convert JSON to sheet
           const rows = (Array.isArray(data) ? data : []);
           const ws = XLSX.utils.json_to_sheet(rows);
           const wb = XLSX.utils.book_new();
@@ -443,10 +442,9 @@
           $("#adminOutput").textContent = "Error: " + err;
         }
       });
-
     }
 
-    // Show admin only if URL contains #admin
+    // Show admin only if URL contains #admin (no on-page hint is provided)
     function checkFragment(){ if (window.location.hash === "#admin") createAdminPanel(); }
     window.addEventListener("hashchange", checkFragment);
     window.addEventListener("load", checkFragment);
