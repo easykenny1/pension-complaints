@@ -95,6 +95,10 @@
     footer{max-width:980px;margin:18px auto;text-align:center;color:var(--muted);font-size:13px;padding-bottom:30px}
 
     .sr-only { position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+
+    /* Admin panel tweaks */
+    #adminPanel input[type="password"]{ width:100%; padding:8px 10px; border-radius:8px; margin-bottom:8px; border:1px solid #e6eff8; }
+    #adminPanel pre { white-space:pre-wrap; word-break:break-word; font-size:13px; }
   </style>
 </head>
 <body>
@@ -172,10 +176,10 @@
         </form>
       </section>
 
-      <!-- Info Card (minimal; no admin/security notice displayed) -->
+      <!-- Info Card -->
       <aside class="card" aria-label="Information">
         <h3 style="margin:0 0 8px 0;font-size:15px">Information</h3>
-        <p class="muted" style="margin-bottom:12px">This portal forwards complaints to the secure serverless proxy.</p>
+        <p class="muted" style="margin-bottom:12px">This portal forwards complaints to a secure serverless proxy. Admin tools are accessible at <code>#admin</code>.</p>
       </aside>
     </div>
   </main>
@@ -185,16 +189,16 @@
 
   <script>
     /***********************************************
-     * Adjusted to call your Cloudflare Worker
-     * - Change WORKER_ENDPOINT if your Worker uses a sub-path (e.g. '/submit' or '/api/submit')
+     * Frontend + Cloudflare Worker integration
      ***********************************************/
     const STORAGE_KEY = "pad:complaints:v1";
 
-    // Use your Cloudflare Worker base URL here. If your worker expects a sub-path (like /submit) add it.
-    // Example: "https://pension-complaints.kehindeadewoye111.workers.dev/submit"
-    const SERVER_ENDPOINT = "https://pension-complaints.kehindeadewoye111.workers.dev/"; // <--- your worker URL
+    // WORKER base URL (use the one you deployed)
+    const WORKER_BASE = "https://pension-complaints-worker.kehindeadewoye111.workers.dev";
+    const SERVER_SUBMIT = WORKER_BASE + "/api/submit";   // POST
+    const SERVER_EXPORT = WORKER_BASE + "/api/export";   // GET (supports ?format=csv or ?format=json)
 
-    // quick helpers
+    // helpers
     const $ = (sel, ctx=document) => ctx.querySelector(sel);
     const createEl = (tag, props) => Object.assign(document.createElement(tag), props || {});
 
@@ -224,11 +228,10 @@
     document.addEventListener("DOMContentLoaded", updateOtherVisibility);
     window.addEventListener("load", updateOtherVisibility);
 
-    // Auto-uppercase RSA PIN and visual hint
+    // Auto-uppercase RSA PIN
     rsaPin.addEventListener("input", () => {
-      const v = rsaPin.value.toUpperCase();
-      rsaPin.value = v;
-      if (v.length > 0 && !/^PEN\d*$/.test(v)) {
+      rsaPin.value = rsaPin.value.toUpperCase();
+      if (rsaPin.value.length > 0 && !/^PEN\d*$/.test(rsaPin.value)) {
         rsaPin.style.borderColor = "#e07a7a";
       } else {
         rsaPin.style.borderColor = "";
@@ -241,9 +244,8 @@
     // Submission: browser validation + strict RSA check + server POST (worker) or local fallback
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      updateOtherVisibility(); // ensure required is set if Others selected
+      updateOtherVisibility();
 
-      // Use native validation UI
       if (!form.reportValidity()) return;
 
       // strict RSA check (PEN + 12 digits)
@@ -268,9 +270,9 @@
       };
 
       // Try server endpoint first (Cloudflare Worker)
-      if (SERVER_ENDPOINT){
+      if (SERVER_SUBMIT){
         try {
-          const res = await fetch(SERVER_ENDPOINT, {
+          const res = await fetch(SERVER_SUBMIT, {
             method: "POST",
             headers: {"Content-Type":"application/json"},
             body: JSON.stringify(payload),
@@ -278,11 +280,10 @@
           });
 
           if (!res.ok) {
-            // get text for debugging if available
             let txt = "";
-            try { txt = await res.text(); } catch(e){ /* ignore */ }
+            try { txt = await res.text(); } catch(e){}
             console.warn("Worker responded with non-OK:", res.status, txt);
-            throw new Error("Worker returned non-OK status: " + res.status);
+            throw new Error("Worker returned non-OK: " + res.status);
           }
 
           form.reset();
@@ -291,7 +292,6 @@
           return;
         } catch (err) {
           console.warn("Worker POST failed — falling back to localStorage.", err);
-          // fall through to localStorage fallback below
         }
       }
 
@@ -299,7 +299,6 @@
       const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
       arr.unshift(payload);
       localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
-
       form.reset();
       updateOtherVisibility();
       showToast("Saved locally ✓");
@@ -309,143 +308,151 @@
     $("#resetBtn").addEventListener("click", () => setTimeout(updateOtherVisibility, 10));
 
     /**********************
-     * ADMIN (no password)
-     * - injected only when URL fragment is #admin
-     * - loads SheetJS on demand for XLSX export
+     * ADMIN PANEL (token-entered-at-runtime)
+     * - Open by visiting the page with #admin
      **********************/
     function createAdminPanel(){
       if ($("#adminPanel")) return;
 
       const panel = createEl("div", { id: "adminPanel" });
       Object.assign(panel.style, {
-        position: "fixed", left: "50%", top: "8%", transform: "translateX(-50%)",
-        minWidth: "320px", maxWidth: "92%", zIndex: 12000, padding: "16px",
-        borderRadius: "12px", boxShadow: "0 18px 48px rgba(2,6,23,0.2)", background: "#fff", border: "1px solid rgba(11,99,168,0.06)"
+        position: "fixed",
+        left: "50%",
+        top: "6%",
+        transform: "translateX(-50%)",
+        minWidth: "360px",
+        maxWidth: "96%",
+        zIndex: 12000,
+        padding: "18px",
+        borderRadius: "12px",
+        boxShadow: "0 18px 48px rgba(2,6,23,0.2)",
+        background: "#fff",
+        border: "1px solid rgba(11,99,168,0.06)"
       });
 
       panel.innerHTML = `
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
-          <div><strong style="font-size:16px">Admin — Export & Manage</strong><div style="font-size:13px;color:#556077;margin-top:6px">Admin tools (no password). Visible because #admin is in the URL.</div></div>
+          <div>
+            <strong style="font-size:16px">Admin — Export & Manage</strong>
+            <div style="font-size:13px;color:#556077;margin-top:6px">Enter your admin token (not stored persistently).</div>
+          </div>
           <div><button id="closeAdmin" style="background:transparent;border:0;font-weight:700;cursor:pointer;color:#556077">Close</button></div>
         </div>
         <hr style="margin:10px 0;border:none;border-top:1px solid rgba(15,23,36,0.06)">
-        <div style="display:flex;flex-direction:column;gap:8px">
-          <div style="display:flex;gap:8px;">
-            <button id="exportJson" class="btn btn-ghost" style="padding:9px 12px">Export JSON</button>
-            <button id="clearLocal" class="btn btn-ghost" style="margin-left:auto;background:#fff;color:#c23b3b;border:1px solid rgba(194,59,59,0.06)">Clear Local</button>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <input id="adminTokenInput" type="password" placeholder="Paste admin token here" aria-label="Admin token">
+          <div style="display:flex;gap:8px">
+            <button id="btnFetchJson" class="btn btn-ghost">Fetch JSON (server)</button>
+            <button id="btnDownloadCsv" class="btn btn-ghost">Download CSV (server)</button>
+            <button id="btnDownloadXlsx" class="btn btn-primary">Download XLSX (server)</button>
           </div>
           <div id="adminStatus" style="font-size:13px;color:#556077"></div>
-          <div id="adminControls" style="display:flex;gap:8px;margin-top:8px">
-            <button id="downloadXlsx" class="btn btn-primary">Download XLSX (local)</button>
-            <button id="downloadCsv" class="btn btn-ghost">Download CSV (local)</button>
-            <button id="exportServer" class="btn btn-ghost">Fetch Server Records</button>
-          </div>
+          <pre id="adminOutput" style="max-height:300px;overflow:auto;background:#fafafa;padding:10px;border-radius:8px;border:1px solid #eef3f8"></pre>
         </div>
       `;
       document.body.appendChild(panel);
 
       $("#closeAdmin").addEventListener("click", () => { panel.remove(); try{ history.replaceState(null,'',window.location.pathname+window.location.search);}catch(e){window.location.hash='';} });
 
-      $("#exportJson").addEventListener("click", () => {
-        const raw = localStorage.getItem(STORAGE_KEY) || "[]";
-        const blob = new Blob([raw], {type:'application/json'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'complaints.json'; document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      });
-
-      $("#clearLocal").addEventListener("click", () => {
-        if (!confirm("Clear stored submissions from this browser? This cannot be undone.")) return;
-        localStorage.removeItem(STORAGE_KEY);
-        $("#adminStatus").textContent = "Local storage cleared.";
-      });
-
-      // load XLSX lib on demand (if not already loaded)
-      function loadXlsx(){
-        return new Promise((resolve, reject) => {
-          if (window.XLSX) return resolve();
-          const s = createEl('script', { src: "https://unpkg.com/xlsx/dist/xlsx.full.min.js" });
-          s.onload = () => resolve();
-          s.onerror = () => reject(new Error("Failed to load XLSX library"));
-          document.head.appendChild(s);
-        });
+      // helper to get token (store only in session for current tab)
+      function getAdminToken(){
+        const input = $("#adminTokenInput").value.trim();
+        if (input) {
+          sessionStorage.setItem("PAD_ADMIN_TOKEN", input);
+          return input;
+        }
+        return sessionStorage.getItem("PAD_ADMIN_TOKEN") || "";
       }
 
-      $("#downloadXlsx").addEventListener("click", async () => {
-        try {
-          await loadXlsx();
-        } catch (err) {
-          alert("Failed to load export library. Check console.");
-          console.error(err);
-          return;
-        }
-        const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        if (!arr.length){ alert("No submissions to export."); return; }
-        const rows = arr.map(it => ({
-          "Submitted At": it.ts,
-          "Name": it.name,
-          "PFA": it.pfa,
-          "PFA (original)": it.pfaOriginalSelection,
-          "RSA PIN": it.rsaPin,
-          "Phone": it.phone,
-          "Complaint": it.complaint
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Complaints");
-        const fname = `pension_complaints_${(new Date()).toISOString().slice(0,10)}.xlsx`;
-        XLSX.writeFile(wb, fname);
-      });
+      async function fetchServerJson(){
+        const token = getAdminToken();
+        if (!token){ alert("Please enter admin token in the box above."); return null; }
 
-      $("#downloadCsv").addEventListener("click", () => {
-        const arr = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-        if (!arr.length){ alert("No submissions to export."); return; }
-        const header = ["Submitted At","Name","PFA","PFA (original)","RSA PIN","Phone","Complaint"];
-        const lines = [header.join(",")];
-        arr.forEach(item => {
-          const row = [item.ts, csvEscape(item.name), csvEscape(item.pfa), csvEscape(item.pfaOriginalSelection), csvEscape(item.rsaPin), csvEscape(item.phone), csvEscape(item.complaint)];
-          lines.push(row.join(","));
-        });
-        const blob = new Blob([lines.join("\n")], {type:'text/csv'});
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href = url; a.download = 'complaints.csv'; document.body.appendChild(a); a.click(); a.remove();
-        URL.revokeObjectURL(url);
-      });
-
-      // fetch server-side records from your worker (if supported)
-      $("#exportServer").addEventListener("click", async () => {
-        if (!SERVER_ENDPOINT) { alert("Server endpoint not configured."); return; }
+        $("#adminStatus").textContent = "Fetching JSON from server...";
         try {
-          // It's common to expose a GET route on the worker for admin exports, e.g. ?action=export
-          const exportUrl = SERVER_ENDPOINT + "?action=export";
-          const res = await fetch(exportUrl, { method: "GET", headers: { "Accept":"application/json" }});
+          const res = await fetch(SERVER_EXPORT + "?format=json", {
+            headers: { "Authorization": `Bearer ${token}`, "Accept":"application/json" }
+          });
           if (!res.ok) {
             const txt = await res.text().catch(()=>"");
-            alert("Server export failed: " + res.status + " " + txt);
-            return;
+            throw new Error("Server returned " + res.status + " — " + txt);
           }
           const data = await res.json();
-          const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = url; a.download = 'server_complaints.json'; document.body.appendChild(a); a.click(); a.remove();
-          URL.revokeObjectURL(url);
+          $("#adminStatus").textContent = `Fetched ${Array.isArray(data)?data.length:0} records.`;
+          $("#adminOutput").textContent = JSON.stringify(data, null, 2);
+          return data;
         } catch (err) {
-          console.error(err);
-          alert("Failed to fetch server records. See console.");
+          $("#adminStatus").textContent = "Fetch failed: " + err.message;
+          $("#adminOutput").textContent = "Error: " + err;
+          return null;
+        }
+      }
+
+      // Fetch JSON
+      $("#btnFetchJson").addEventListener("click", async () => {
+        await fetchServerJson();
+      });
+
+      // Download CSV (server-generated if worker supports it)
+      $("#btnDownloadCsv").addEventListener("click", async () => {
+        const token = getAdminToken();
+        if (!token){ alert("Please enter admin token in the box above."); return; }
+        $("#adminStatus").textContent = "Requesting CSV from server...";
+        try {
+          const res = await fetch(SERVER_EXPORT + "?format=csv", {
+            headers: { "Authorization": `Bearer ${token}`, "Accept":"text/csv" }
+          });
+          if (!res.ok) {
+            const txt = await res.text().catch(()=>"");
+            throw new Error("Server returned " + res.status + " — " + txt);
+          }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a"); a.href = url; a.download = `pension_complaints_${(new Date()).toISOString().slice(0,10)}.csv`; document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(url);
+          $("#adminStatus").textContent = "CSV downloaded.";
+        } catch (err) {
+          $("#adminStatus").textContent = "CSV failed: " + err.message;
+          $("#adminOutput").textContent = "Error: " + err;
         }
       });
 
-      function csvEscape(v){ if (v == null) return ""; return `"${String(v).replace(/"/g,'""')}"`; }
+      // Download XLSX: fetch JSON then convert client-side using SheetJS (loaded on demand)
+      $("#btnDownloadXlsx").addEventListener("click", async () => {
+        const data = await fetchServerJson();
+        if (!data) return;
+        $("#adminStatus").textContent = "Loading XLSX library...";
+        try {
+          if (!window.XLSX) {
+            await new Promise((resolve, reject) => {
+              const s = createEl("script", { src: "https://unpkg.com/xlsx/dist/xlsx.full.min.js" });
+              s.onload = resolve; s.onerror = reject;
+              document.head.appendChild(s);
+            });
+          }
+          // Convert JSON to sheet
+          const rows = (Array.isArray(data) ? data : []);
+          const ws = XLSX.utils.json_to_sheet(rows);
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, "Complaints");
+          const fname = `pension_complaints_${(new Date()).toISOString().slice(0,10)}.xlsx`;
+          XLSX.writeFile(wb, fname);
+          $("#adminStatus").textContent = "XLSX downloaded.";
+        } catch (err) {
+          $("#adminStatus").textContent = "XLSX failed: " + err.message;
+          $("#adminOutput").textContent = "Error: " + err;
+        }
+      });
 
-      // show stored count
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      $("#adminStatus").textContent = `Stored submissions: ${stored.length}.`;
     }
 
     // Show admin only if URL contains #admin
     function checkFragment(){ if (window.location.hash === "#admin") createAdminPanel(); }
     window.addEventListener("hashchange", checkFragment);
     window.addEventListener("load", checkFragment);
+
+    // small helper used by CSV/JSON exporters
+    function csvEscape(v){ if (v == null) return ""; return `"${String(v).replace(/"/g,'""')}"`; }
   </script>
 </body>
 </html>
